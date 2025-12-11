@@ -65,6 +65,16 @@ ynh_app_setting_set --app=$app --key=encryption_default --value=$encryption_defa
 ynh_app_setting_set --app=$app --key=encryption_require --value=$encryption_require
 ynh_app_setting_set --app=$app --key=listrelaybot --value=$listrelaybot
 
+# User prompt values
+ynh_app_setting_set --key=synapse_instance --value=$synapse_instance
+ynh_app_setting_set --key=botname --value=$botname
+ynh_app_setting_set --key=botusers --value=$botusers
+ynh_app_setting_set --key=botadmin --value=$botadmin
+ynh_app_setting_set --key=encryption --value=$encryption
+ynh_app_setting_set --key=apiid --value=$apiid
+ynh_app_setting_set --key=apihash --value=$apihash
+ynh_app_setting_set --key=bottoken --value=$bottoken
+
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
@@ -124,22 +134,22 @@ export HOME=$install_dir
 chmod -R 750 "$install_dir"
 chown -R $app:$app "$install_dir"
 
-# Disabilita cache di pip per evitare problemi di permessi
+# Cache disable
 export PIP_CACHE_DIR=/dev/null
 export PIP_NO_CACHE_DIR=1
 
-# PULISCI le installazioni precedenti
+# Clear previous
 $install_dir/bin/pip3 install --upgrade pip setuptools wheel
 
-# Rimuovi le dipendenze problematiche se presenti
+# Clear lib
 $install_dir/bin/pip3 uninstall -y pycares aiodns aiohttp telethon 2>/dev/null || true
 
-# Installa le dipendenze CORRETTE nell'ordine giusto
+# Install required lib
 $install_dir/bin/pip3 install --no-cache-dir --upgrade 'pycares==4.4.0'
 $install_dir/bin/pip3 install --no-cache-dir --upgrade 'aiodns==3.2.0'
 $install_dir/bin/pip3 install --no-cache-dir --upgrade 'aiohttp==3.10.0'
 
-# Installa il package principale
+# Install package with pip
 $install_dir/bin/pip3 install --no-cache-dir --upgrade $install_dir/src/mautrix-telegram.tar.gz[e2be,speedups]
 
 #=================================================
