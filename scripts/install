@@ -201,7 +201,6 @@ ynh_store_file_checksum --file="$install_dir/config.yaml"
 #=================================================
 ynh_script_progression "Adding system configurations related to $app..."
 
-ynh_systemd_add_service
 
 ynh_install_logrotate
 
