@@ -21,6 +21,15 @@ ynh_app_setting_set --key=apiid --value=$apiid
 ynh_app_setting_set --key=apihash --value=$apihash
 ynh_app_setting_set --key=bottoken --value=$bottoken
 
+# Recupera i dati del database (impostati automaticamente da YunoHost)
+db_name=$(ynh_app_setting_get --key=db_name)
+db_user=$db_name  # db_user è uguale a db_name
+listen_port=$(ynh_app_setting_get --key=listen_port)
+listen_port=${listen_port:-8000}
+
+# Salva le impostazioni
+ynh_app_setting_set --key=listen_port --value=$listen_port
+
 # Retrieve some values from selected Synapse instance and store them
 appserviceid=$app
 synapse_install_dir=$(ynh_app_setting_get --app=$synapse_instance --key=install_dir)
@@ -90,22 +99,32 @@ chown -R $app:$app "$install_dir"
 #=================================================
 ynh_script_progression "Adding $app's configuration..."
 
-# WARNING : theses command are used in INSTALL, UPGRADE, CONFIG, CHANGE-URL (4 times)
-# For any update do it in all files
-as_token="\"This value is generated when generating the registration\""
-hs_token="\"This value is generated when generating the registration\""
-is_encryption_enabled="$encryption"
+# Copia il file config
+cp ../conf/config.yaml "$install_dir/config.yaml"
 
-if [ $encryption -eq 1 ]; then
+# Prepara i valori per la crittografia
+is_encryption_enabled="false"
+if [ "$encryption" = "true" ] || [ "$encryption" -eq 1 ]; then
   is_encryption_enabled="true"
 fi
 
-if [ "$botusers" = "local" ]
-then
-	botusers="$server_name"
-fi
-
-ynh_config_add --template="config.yaml" --destination="$install_dir/config.yaml"
+# Sostituisci i placeholder nel config.yaml
+ynh_replace_string --match_string="__DOMAIN__" --replace_string="$domain" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__SERVER_NAME__" --replace_string="$server_name" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__PORT__" --replace_string="$listen_port" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__DB_USER__:__DB_PWD__@localhost:5432/__DB_NAME__" --replace_string="$db_user@localhost:5432/$db_name" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__APPSERVICEID__" --replace_string="$appserviceid" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__BOTNAME__" --replace_string="$botname" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__AS_TOKEN__" --replace_string="$as_token" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__HS_TOKEN__" --replace_string="$hs_token" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__APIID__" --replace_string="$apiid" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__APIHASH__" --replace_string="$apihash" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__BOTTOKEN__" --replace_string="$bottoken" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__IS_ENCRYPTION_ENABLED__" --replace_string="$is_encryption_enabled" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__APP__" --replace_string="$app" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__LISTRELAYBOT__" --replace_string="$listrelaybot" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__LISTPUPPETING__" --replace_string="$listpuppeting" --target_file="$install_dir/config.yaml"
+ynh_replace_string --match_string="__LISTADMIN__" --replace_string="$listadmin" --target_file="$install_dir/config.yaml"
 
 # This calls allows to set multiple users during install question "botusers" specifying them separated by a comma
 set__listrelaybot
