@@ -202,7 +202,7 @@ ynh_store_file_checksum --file="$install_dir/config.yaml"
 ynh_script_progression "Adding system configurations related to $app..."
 
 
-ynh_install_logrotate
+ynh_add_logrotate
 
 yunohost service add $app --description="$app daemon for bridging Telegram and Matrix messages" --log="/var/log/$app/$app.log"
 
