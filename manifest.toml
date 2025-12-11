@@ -122,5 +122,5 @@ in_subdir = true
 extract = false
 rename = "mautrix-telegram.tar.gz"
 url = "https://github.com/mautrix/telegram/archive/refs/tags/v0.15.3.tar.gz"
-sha256 = "4a437a5be1d736aed50857dc38aa56f3f0ba0d01d6f62ca93b1433f693178950"
+sha256 = "e201b9604c04a927d12b7a23d218a32430eb4b721da555f3112e0150811a0572"
 autoupdate.strategy = "latest_github_release"
