@@ -187,14 +187,14 @@ if [ ! -f "$synapse_install_dir/update_synapse_for_appservice.sh" ]; then
         synapse_install_dir="/var/www/synapse"
         ynh_print_info "Found Synapse at /var/www/synapse"
     else
-        ynh_die --message="Can't find Synapse update script. Searched in: $synapse_install_dir and /var/www/synapse"
+        ynh_die "Can't find Synapse update script. Searched in: $synapse_install_dir and /var/www/synapse"
     fi
 fi
 
-$synapse_install_dir/update_synapse_for_appservice.sh || ynh_die --message="Synapse can't restart with the appservice configuration"
+$synapse_install_dir/update_synapse_for_appservice.sh || ynh_die "Synapse can't restart with the appservice configuration"
 
-ynh_store_file_checksum --file="/etc/matrix-$synapse_instance/app-service/$app.yaml"
-ynh_store_file_checksum --file="$install_dir/config.yaml"
+ynh_store_file_checksum "/etc/matrix-$synapse_instance/app-service/$app.yaml"
+ynh_store_file_checksum "$install_dir/config.yaml"
 
 #=================================================
 # SYSTEM CONFIGURATION
@@ -202,7 +202,9 @@ ynh_store_file_checksum --file="$install_dir/config.yaml"
 ynh_script_progression "Adding system configurations related to $app..."
 
 
-ynh_add_logrotate
+ynh_config_add_systemd
+
+ynh_config_add_logrotate "/var/log/$app/$app.log" $app/$app
 
 yunohost service add $app --description="$app daemon for bridging Telegram and Matrix messages" --log="/var/log/$app/$app.log"
 
