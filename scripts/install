@@ -118,23 +118,23 @@ ynh_script_progression "Installing Mautrix-Bridge Python Module..."
 
 mkdir -p /var/log/$app
 
-# Prepara l'ambiente per pip
-mkdir -p "$install_dir/.cache"
-chmod -R 750 "$install_dir/.cache"
-chown -R $app:$app "$install_dir/.cache"
-
 # Configure Mautrix-Bridge
 python3 -m venv $install_dir
 export HOME=$install_dir
 chmod -R 750 "$install_dir"
 chown -R $app:$app "$install_dir"
 
-# Disabilita la cache di pip per evitare problemi di permessi
-export PIP_CACHE_DIR=/tmp/pip-cache-$app
-mkdir -p $PIP_CACHE_DIR
-chmod 777 $PIP_CACHE_DIR
+# Disabilita cache di pip per evitare problemi di permessi
+export PIP_CACHE_DIR=/dev/null
+export PIP_NO_CACHE_DIR=1
 
+# Installa le dipendenze problematiche con versioni compatibili
 $install_dir/bin/pip3 install --upgrade pip setuptools wheel
+$install_dir/bin/pip3 install 'pycares>=4.4.0'
+$install_dir/bin/pip3 install 'aiodns>=3.2.0'
+$install_dir/bin/pip3 install 'aiohttp>=3.9.0'
+
+# Installa il package principale
 $install_dir/bin/pip3 install --upgrade $install_dir/src/mautrix-telegram.tar.gz[e2be,speedups]
 
 #=================================================
