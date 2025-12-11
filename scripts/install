@@ -51,7 +51,6 @@ bot_avatar="mxc://maunium.net/tJCRmUyJDsgRNgqhOgoiHWbX"
 device_model="mautrix-telegram"
 ephemeral_events="false"
 enable_metrics="false"
-listen_port="8000"
 alias_template="telegram_{userid}"
 displayname_template="{displayname} (Telegram)"
 username_template="telegram_{userid}"
@@ -101,6 +100,10 @@ ynh_script_progression "Adding $app's configuration..."
 
 # Copia il file config
 cp ../conf/config.yaml "$install_dir/config.yaml"
+
+# Genera i token
+as_token=$(ynh_string_random)
+hs_token=$(ynh_string_random)
 
 # Prepara i valori per la crittografia
 is_encryption_enabled="false"
@@ -155,11 +158,6 @@ export PIP_NO_CACHE_DIR=1
 
 # Upgrade pip
 $install_dir/bin/pip3 install --upgrade --no-cache-dir pip setuptools wheel
-
-# Installa le dipendenze corrette
-$install_dir/bin/pip3 install --no-cache-dir 'pycares==4.4.0'
-$install_dir/bin/pip3 install --no-cache-dir 'aiodns==3.2.0' 
-$install_dir/bin/pip3 install --no-cache-dir 'aiohttp==3.10.0'
 
 # Installa il package
 $install_dir/bin/pip3 install --no-cache-dir $install_dir/src/mautrix-telegram.tar.gz[e2be,speedups]
