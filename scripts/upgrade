@@ -51,7 +51,7 @@ upgrade_type=$(ynh_check_app_version_changed)
 #=================================================
 ynh_script_progression --message="Stopping a systemd service..." --weight=1
 
-ynh_systemd_action --service_name=$app --action="stop" --log_path="/var/log/$app/$app.log"
+ynh_systemctl --service=$app --action="stop"
 
 #=================================================
 # ENSURE DOWNWARD COMPATIBILITY
@@ -160,33 +160,38 @@ then
   encryption_require="false"
   ynh_app_setting_set --app=$app --key=encryption_require --value=$encryption_require
 fi
-if [ -z "$listrelaybot" ]
-then
-    listrelaybot="*"
-    ynh_app_setting_set --app=$app --key=listrelaybot --value=$listrelaybot
+# Permission migration
+# Check for old permission settings and migrate them to the new ones.
+if ynh_app_setting_get --app=$app --key="listrelaybot"; then
+    listrelay=$(ynh_app_setting_get --app=$app --key=listrelaybot)
+    ynh_app_setting_set --app=$app --key=listrelay --value="$listrelay"
+    ynh_app_setting_delete --app=$app --key=listrelaybot
+else
+    listrelay="*"
 fi
-if [ -z "$listuser" ]
-then
-    listuser=""
-    ynh_app_setting_set --app=$app --key=listuser --value=$listuser
-fi
-if [ -z "$listpuppeting" ]
-then
-    listpuppeting=$(ynh_app_setting_get --app=$app --key=botusers)
-    ynh_app_setting_set --app=$app --key=listpuppeting --value=$listpuppeting
+
+if ynh_app_setting_get --app=$app --key="listpuppeting"; then
+    listuser=$(ynh_app_setting_get --app=$app --key=listpuppeting)
+    ynh_app_setting_set --app=$app --key=listuser --value="$listuser"
+    ynh_app_setting_delete --app=$app --key=listpuppeting
+elif ynh_app_setting_get --app=$app --key="botusers"; then
+    listuser=$(ynh_app_setting_get --app=$app --key=botusers)
+    ynh_app_setting_set --app=$app --key=listuser --value="$listuser"
     ynh_app_setting_delete --app=$app --key=botusers
+else
+    listuser=""
 fi
-if [ -z "$listfull" ]
-then
-    listfull=""
-    ynh_app_setting_set --app=$app --key=listfull --value=$listfull
+
+if ! ynh_app_setting_get --app=$app --key="listadmin"; then
+    if ynh_app_setting_get --app=$app --key="botadmin"; then
+        listadmin=$(ynh_app_setting_get --app=$app --key=botadmin)
+        ynh_app_setting_set --app=$app --key=listadmin --value=$listadmin
+        ynh_app_setting_delete --app=$app --key=botadmin
+    fi
 fi
-if [ -z "$listadmin" ]
-then
-    listadmin=$(ynh_app_setting_get --app=$app --key=botadmin)
-    ynh_app_setting_set --app=$app --key=listadmin --value=$listadmin
-    ynh_app_setting_delete --app=$app --key=botadmin
-fi
+
+# Clean up old unused settings
+ynh_app_setting_delete --app=$app --key=listfull &> /dev/null || true
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
@@ -211,16 +216,10 @@ chown -R $app:$app "$install_dir"
 ynh_script_progression --message="Updating a configuration file..." --weight=2
 
 # reset permissions to be able to apply_permissions with app_setting values after upgrade
-listrelaybot_=$listrelaybot
+# backup permissions before regenerating the config file
+listrelay_=$listrelay
 listuser_=$listuser
-listpuppeting_=$listpuppeting
-listfull_=$listfull
 listadmin_=$listadmin
-listrelaybot="*"
-listuser="@user:domain.tld"
-listpuppeting="@puppet:domain.tld"
-listfull="@full:domain.tld"
-listadmin="@admin:domain.tld"
 
 # main configuration
 ynh_backup_if_checksum_is_different --file="$install_dir/config.yaml"
@@ -238,17 +237,14 @@ ynh_add_config --template="../conf/config.yaml" --destination="$install_dir/conf
 chmod 400 "$install_dir/config.yaml"
 chown $app:$app "$install_dir/config.yaml"
 
-listrelaybot=$listrelaybot_
+# restore and apply permissions
+listrelay=$listrelay_
 listuser=$listuser_
-listpuppeting=$listpuppeting_
-listfull=$listfull_
 listadmin=$listadmin_
 
 # apply_permissions to have correct syntax in config file
-set__listrelaybot
+set__listrelay
 set__listuser
-set__listpuppeting
-set__listfull
 set__listadmin
 
 #=================================================
@@ -267,12 +263,12 @@ $install_dir/bin/pip3 install --upgrade $install_dir/src/mautrix-telegram.tar.gz
 ynh_script_progression --message="Registering Synapse app-service" --weight=1
 
 $install_dir/bin/python3 -m mautrix_telegram -g -c $install_dir/config.yaml -r "/etc/matrix-$synapse_instance/app-service/$app.yaml"
-/opt/yunohost/matrix-$synapse_instance/update_synapse_for_appservice.sh || ynh_die --message="Synapse can't restart with the appservice configuration"
+/opt/yunohost/matrix-$synapse_instance/update_synapse_for_appservice.sh || ynh_die "Synapse can't restart with the appservice configuration"
 
 # Set permissions on app files
 chown -R $app:$app "$install_dir"
-ynh_store_file_checksum --file="/etc/matrix-$synapse_instance/app-service/$app.yaml"
-ynh_store_file_checksum --file="$install_dir/config.yaml"
+ynh_store_file_checksum "/etc/matrix-$synapse_instance/app-service/$app.yaml"
+ynh_store_file_checksum "$install_dir/config.yaml"
 
 #=================================================
 # SETUP SYSTEMD
@@ -280,7 +276,7 @@ ynh_store_file_checksum --file="$install_dir/config.yaml"
 ynh_script_progression --message="Upgrading systemd configuration..." --weight=1
 
 # Create a dedicated systemd config
-ynh_add_systemd_config
+ynh_config_add_systemd
 
 #=================================================
 # GENERIC FINALIZATION
@@ -290,7 +286,7 @@ ynh_add_systemd_config
 ynh_script_progression --message="Upgrading logrotate configuration..." --weight=1
 
 # Use logrotate to manage app-specific logfile(s)
-ynh_use_logrotate --non-append --logfile "/var/log/$app/$app.log"
+ynh_config_add_logrotate "/var/log/$app/$app.log" $app/$app
 chown -R $app:$app /var/log/$app
 
 #=================================================
@@ -306,7 +302,7 @@ yunohost service add $app --description="$app daemon for bridging Telegram and M
 ynh_script_progression --message="Starting a systemd service..." --weight=1
 
 # Start a systemd service
-ynh_systemd_action --service_name=$app --action="start"
+ynh_systemctl --service=$app --action="start"
 
 #=================================================
 # END OF SCRIPT
