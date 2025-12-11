@@ -128,14 +128,19 @@ chown -R $app:$app "$install_dir"
 export PIP_CACHE_DIR=/dev/null
 export PIP_NO_CACHE_DIR=1
 
-# Installa le dipendenze problematiche con versioni compatibili
+# PULISCI le installazioni precedenti
 $install_dir/bin/pip3 install --upgrade pip setuptools wheel
-$install_dir/bin/pip3 install 'pycares>=4.4.0'
-$install_dir/bin/pip3 install 'aiodns>=3.2.0'
-$install_dir/bin/pip3 install 'aiohttp>=3.9.0'
+
+# Rimuovi le dipendenze problematiche se presenti
+$install_dir/bin/pip3 uninstall -y pycares aiodns aiohttp telethon 2>/dev/null || true
+
+# Installa le dipendenze CORRETTE nell'ordine giusto
+$install_dir/bin/pip3 install --no-cache-dir --upgrade 'pycares==4.4.0'
+$install_dir/bin/pip3 install --no-cache-dir --upgrade 'aiodns==3.2.0'
+$install_dir/bin/pip3 install --no-cache-dir --upgrade 'aiohttp==3.10.0'
 
 # Installa il package principale
-$install_dir/bin/pip3 install --upgrade $install_dir/src/mautrix-telegram.tar.gz[e2be,speedups]
+$install_dir/bin/pip3 install --no-cache-dir --upgrade $install_dir/src/mautrix-telegram.tar.gz[e2be,speedups]
 
 #=================================================
 # REGISTER SYNAPSE APP-SERVICE
