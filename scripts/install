@@ -172,7 +172,8 @@ pushd "$install_dir/src"
 
 # Cerca la directory che contiene setup.py o pyproject.toml
 if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
-    subdir=$(find . -maxdepth 2 -name setup.py -printf '%h\n' | head -n 1)
+    # Cerca setup.py O pyproject.toml in una sottocartella
+    subdir=$(find . -maxdepth 2 \( -name setup.py -o -name pyproject.toml \) -printf '%h\n' | head -n 1)
     if [ -n "$subdir" ]; then
         cd "$subdir"
         ynh_print_info "Found source in subdirectory: $subdir"
