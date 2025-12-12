@@ -171,6 +171,9 @@ $install_dir/bin/pip3 install --upgrade --no-cache-dir pip setuptools wheel
 # Entriamo nella directory src per trovare setup.py, nel caso sia in una sottocartella
 pushd "$install_dir/src"
 
+# DEBUG: Lista il contenuto per capire cosa è stato estratto
+ls -la
+
 # Cerca la directory che contiene setup.py o pyproject.toml
 if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
     # Cerca setup.py O pyproject.toml in una sottocartella
@@ -178,7 +181,22 @@ if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
     if [ -n "$subdir" ]; then
         cd "$subdir"
         ynh_print_info "Found source in subdirectory: $subdir"
+    else
+        # Fallback: se c'è una sola directory, entra lì (spesso i tarball hanno una root folder)
+        dir_count=$(find . -maxdepth 1 -mindepth 1 -type d | wc -l)
+        if [ "$dir_count" -eq 1 ]; then
+            single_dir=$(find . -maxdepth 1 -mindepth 1 -type d | head -n 1)
+            cd "$single_dir"
+            ynh_print_info "Entering the only subdirectory found: $single_dir"
+        fi
     fi
+fi
+
+# Verifica finale prima di lanciare pip
+if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
+    ynh_print_err "Could not find setup.py or pyproject.toml in $(pwd)"
+    ls -R
+    ynh_die "Installation failed: source files not found."
 fi
 
 "$install_dir/bin/pip3" install --no-cache-dir ".[e2be,speedups]"
