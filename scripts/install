@@ -174,14 +174,14 @@ pushd "$install_dir/src"
 # Cerca la directory che contiene setup.py o pyproject.toml
 if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
     # Cerca setup.py O pyproject.toml in una sottocartella
-    subdir=$(find . -maxdepth 2 \( -name setup.py -o -name pyproject.toml \) -printf '%h\n' | head -n 1)
+    subdir=$(find . -maxdepth 3 \( -name setup.py -o -name pyproject.toml \) -printf '%h\n' | head -n 1)
     if [ -n "$subdir" ]; then
         cd "$subdir"
         ynh_print_info "Found source in subdirectory: $subdir"
     fi
 fi
 
-"$install_dir/bin/pip3" install --no-cache-dir .[e2be,speedups]
+"$install_dir/bin/pip3" install --no-cache-dir ".[e2be,speedups]"
 popd
 
 # Reimposta i permessi dopo l'installazione
