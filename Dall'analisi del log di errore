@@ -1,0 +1,5 @@
+2025-12-12 11:39:15,532: DEBUG - + set__listrelay
+2025-12-12 11:39:15,532: DEBUG - + role=relaybot
+...
+2025-12-12 11:39:15,600: DEBUG - + declare values=listrelaybot
+2025-12-12 11:39:15,601: WARNING - _common.sh: line 16: !values: unbound variable

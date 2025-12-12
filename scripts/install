@@ -138,6 +138,7 @@ fi
 ynh_add_config --template="../conf/config.yaml" --destination="$install_dir/config.yaml"
 
 # This calls allows to set multiple users during install question "botusers" specifying them separated by a comma
+listrelaybot=$listrelay
 set__listrelay
 set__listuser
 set__listadmin
