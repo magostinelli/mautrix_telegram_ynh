@@ -166,8 +166,8 @@ export PIP_NO_CACHE_DIR=1
 # Upgrade pip
 $install_dir/bin/pip3 install --upgrade --no-cache-dir pip setuptools wheel
 
-# Installa il package
-$install_dir/bin/pip3 install --no-cache-dir $install_dir/src/mautrix-telegram.tar.gz[e2be,speedups]
+# Installa il package dalla directory src (dove è stato estratto)
+$install_dir/bin/pip3 install --no-cache-dir "$install_dir/src"[e2be,speedups]
 
 # Reimposta i permessi dopo l'installazione
 chmod -R 750 "$install_dir"
