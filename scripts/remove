@@ -15,7 +15,8 @@ source /usr/share/yunohost/helpers
 ynh_script_progression --message="Loading installation settings..." --weight=5
 
 app=$YNH_APP_INSTANCE_NAME
-synapse_instance=$(ynh_app_setting_get --app=$app --key=synapse_instance)
+# Recupera l'istanza synapse, ma non fallire se non esiste (|| true)
+synapse_instance=$(ynh_app_setting_get --app=$app --key=synapse_instance || true)
 
 #=================================================
 # STANDARD REMOVE
@@ -53,19 +54,33 @@ ynh_remove_logrotate
 #=================================================
 ynh_script_progression --message="Removing various files..." --weight=6
 
-# Remove a directory securely
-ynh_secure_remove --file="/etc/matrix-$synapse_instance/app-service/$app.yaml"
+# Remove a directory securely only if synapse_instance is known
+if [ -n "$synapse_instance" ]; then
+    ynh_secure_remove --file="/etc/matrix-$synapse_instance/app-service/$app.yaml"
+else
+    ynh_print_warn "Synapse instance setting missing. Skipping removal of app-service config file."
+fi
 
 # Retrieve Synapse install dir to find the update script
-synapse_install_dir=$(ynh_app_setting_get --app=$synapse_instance --key=install_dir)
+synapse_install_dir=""
+if [ -n "$synapse_instance" ]; then
+    synapse_install_dir=$(ynh_app_setting_get --app=$synapse_instance --key=install_dir || true)
+fi
 
 # Define the script name
 update_script="update_synapse_for_appservice.sh"
-script_path="$synapse_install_dir/$update_script"
+script_path=""
+
+if [ -n "$synapse_install_dir" ]; then
+    script_path="$synapse_install_dir/$update_script"
+fi
 
 # Check if the script exists in the retrieved directory
-if [ ! -f "$script_path" ]; then
-    ynh_print_warn "Script not found at: $script_path"
+if [ -z "$script_path" ] || [ ! -f "$script_path" ]; then
+    if [ -n "$script_path" ]; then
+        ynh_print_warn "Script not found at: $script_path"
+    fi
+    
     # Try the alternative path
     if [ -f "/var/www/synapse/$update_script" ]; then
         script_path="/var/www/synapse/$update_script"
