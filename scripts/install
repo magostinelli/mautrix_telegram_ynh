@@ -12,7 +12,7 @@ source _common.sh
 #=================================================
 
 app=$YNH_APP_INSTANCE_NAME
-install_dir=$YNH_APP_INSTALL_DIR
+install_dir=${YNH_APP_INSTALL_DIR:-/var/www/$app}
 
 synapse_instance=${YNH_APP_ARG_SYNAPSE_INSTANCE:-}
 botname=${YNH_APP_ARG_BOTNAME:-}
