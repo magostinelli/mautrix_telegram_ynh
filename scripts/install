@@ -166,8 +166,21 @@ export PIP_NO_CACHE_DIR=1
 # Upgrade pip
 $install_dir/bin/pip3 install --upgrade --no-cache-dir pip setuptools wheel
 
-# Installa il package dalla directory src (dove è stato estratto)
-$install_dir/bin/pip3 install --no-cache-dir "$install_dir/src"[e2be,speedups]
+# Installa il package
+# Entriamo nella directory src per trovare setup.py, nel caso sia in una sottocartella
+pushd "$install_dir/src"
+
+# Cerca la directory che contiene setup.py o pyproject.toml
+if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
+    subdir=$(find . -maxdepth 2 -name setup.py -printf '%h\n' | head -n 1)
+    if [ -n "$subdir" ]; then
+        cd "$subdir"
+        ynh_print_info "Found source in subdirectory: $subdir"
+    fi
+fi
+
+"$install_dir/bin/pip3" install --no-cache-dir .[e2be,speedups]
+popd
 
 # Reimposta i permessi dopo l'installazione
 chmod -R 750 "$install_dir"
