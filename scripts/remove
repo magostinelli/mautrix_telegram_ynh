@@ -59,12 +59,27 @@ ynh_secure_remove --file="/etc/matrix-$synapse_instance/app-service/$app.yaml"
 # Retrieve Synapse install dir to find the update script
 synapse_install_dir=$(ynh_app_setting_get --app=$synapse_instance --key=install_dir)
 
-# If the script is not found in the install dir, try the default path
-if [ ! -f "$synapse_install_dir/update_synapse_for_appservice.sh" ]; then
-    synapse_install_dir="/var/www/synapse"
+# Define the script name
+update_script="update_synapse_for_appservice.sh"
+script_path="$synapse_install_dir/$update_script"
+
+# Check if the script exists in the retrieved directory
+if [ ! -f "$script_path" ]; then
+    ynh_print_warn "Script not found at: $script_path"
+    # Try the alternative path
+    if [ -f "/var/www/synapse/$update_script" ]; then
+        script_path="/var/www/synapse/$update_script"
+        ynh_print_info "Found Synapse script at $script_path"
+    else
+        script_path=""
+        ynh_print_warn "Could not find $update_script. Synapse configuration update skipped."
+    fi
 fi
 
-$synapse_install_dir/update_synapse_for_appservice.sh || ynh_die --message="Synapse can't restart with the appservice configuration"
+# Run the script if found
+if [ -n "$script_path" ]; then
+    $script_path || ynh_print_warn "Synapse update script returned an error, but continuing removal."
+fi
 
 # Remove the log files
 
