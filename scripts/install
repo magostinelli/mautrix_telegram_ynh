@@ -140,7 +140,7 @@ ynh_script_progression "Adding $app's configuration..."
 # Variabile usata nel template config.yaml
 is_encryption_enabled=$encryption
 
-ynh_config_add --template="../conf/config.yaml" --destination="$install_dir/config.yaml"
+ynh_add_config --template="../conf/config.yaml" --destination="$install_dir/config.yaml"
 
 # This calls allows to set multiple users during install question "botusers" specifying them separated by a comma
 listrelaybot=$listrelay
@@ -224,9 +224,9 @@ ynh_store_file_checksum "$install_dir/config.yaml"
 ynh_script_progression "Adding system configurations related to $app..."
 
 
-ynh_config_add_systemd
+ynh_add_systemd_config
 
-ynh_config_add_logrotate "/var/log/$app/$app.log" $app/$app
+ynh_add_logrotate_config "/var/log/$app/$app.log" $app/$app
 
 yunohost service add $app --description="$app daemon for bridging Telegram and Matrix messages" --log="/var/log/$app/$app.log"
 
