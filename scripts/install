@@ -45,7 +45,8 @@ ynh_app_setting_set --key=hs_token --value=$hs_token
 
 # Recupera i dati del database (impostati automaticamente da YunoHost)
 db_name=$(ynh_app_setting_get --key=db_name)
-db_user=$db_name  # db_user è uguale a db_name
+db_user=$db_name
+db_pwd=$(ynh_app_setting_get --key=db_pwd)
 listen_port=$(ynh_app_setting_get --key=port)
 
 # Salva le impostazioni
@@ -59,6 +60,13 @@ domain=$(ynh_app_setting_get --app=$synapse_instance --key=domain)
 ynh_app_setting_set --key=server_name --value=$server_name
 ynh_app_setting_set --key=domain --value=$domain
 ynh_app_setting_set --key=appserviceid --value=$appserviceid
+
+# Normalizza la variabile encryption
+if [ "$encryption" -eq "1" ] || [ "$encryption" = "true" ]; then
+  encryption="true"
+else
+  encryption="false"
+fi
 
 #=================================================
 # SET STANDARD SETTINGS FROM DEFAULT CONFIG
@@ -129,13 +137,10 @@ chown -R $app:$app "$install_dir"
 #=================================================
 ynh_script_progression "Adding $app's configuration..."
 
-# Prepara i valori per la crittografia
-is_encryption_enabled="false"
-if [ "$encryption" = "true" ] || [ "$encryption" -eq 1 ]; then
-  is_encryption_enabled="true"
-fi
+# Variabile usata nel template config.yaml
+is_encryption_enabled=$encryption
 
-ynh_add_config --template="../conf/config.yaml" --destination="$install_dir/config.yaml"
+ynh_config_add --template="../conf/config.yaml" --destination="$install_dir/config.yaml"
 
 # This calls allows to set multiple users during install question "botusers" specifying them separated by a comma
 listrelaybot=$listrelay
@@ -168,35 +173,18 @@ export PIP_NO_CACHE_DIR=1
 $install_dir/bin/pip3 install --upgrade --no-cache-dir pip setuptools wheel
 
 # Installa il package
-# Entriamo nella directory src per trovare setup.py, nel caso sia in una sottocartella
 pushd "$install_dir/src"
 
-# DEBUG: Lista il contenuto per capire cosa è stato estratto
-ls -la
-
-# Cerca la directory che contiene setup.py o pyproject.toml
+# Cerca la directory che contiene setup.py o pyproject.toml se non sono nella root di src
 if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
-    # Cerca setup.py O pyproject.toml in una sottocartella
-    subdir=$(find . -maxdepth 3 \( -name setup.py -o -name pyproject.toml \) -printf '%h\n' | head -n 1)
-    if [ -n "$subdir" ]; then
+    # Cerca setup.py O pyproject.toml in una sottocartella (max depth 2)
+    subdir=$(find . -maxdepth 2 \( -name setup.py -o -name pyproject.toml \) -printf '%h\n' | head -n 1)
+    if [ -n "$subdir" ] && [ "$subdir" != "." ]; then
         cd "$subdir"
         ynh_print_info "Found source in subdirectory: $subdir"
     else
-        # Fallback: se c'è una sola directory, entra lì (spesso i tarball hanno una root folder)
-        dir_count=$(find . -maxdepth 1 -mindepth 1 -type d | wc -l)
-        if [ "$dir_count" -eq 1 ]; then
-            single_dir=$(find . -maxdepth 1 -mindepth 1 -type d | head -n 1)
-            cd "$single_dir"
-            ynh_print_info "Entering the only subdirectory found: $single_dir"
-        fi
+        ynh_die "Installation failed: setup.py or pyproject.toml not found in $install_dir/src"
     fi
-fi
-
-# Verifica finale prima di lanciare pip
-if [ ! -f "setup.py" ] && [ ! -f "pyproject.toml" ]; then
-    ynh_print_err "Could not find setup.py or pyproject.toml in $(pwd)"
-    ls -R
-    ynh_die "Installation failed: source files not found."
 fi
 
 "$install_dir/bin/pip3" install --no-cache-dir ".[e2be,speedups]"
@@ -213,10 +201,6 @@ ynh_script_progression "Registering Synapse app-service"
 
 $install_dir/bin/python3 -m mautrix_telegram -g -c $install_dir/config.yaml -r "/etc/matrix-$synapse_instance/app-service/$app.yaml"
 
-# DEBUG: stampa i valori delle variabili
-ynh_print_info "DEBUG: synapse_instance = $synapse_instance"
-ynh_print_info "DEBUG: synapse_install_dir = $synapse_install_dir"
-
 # Verifica il percorso di Synapse prima di procedere
 if [ ! -f "$synapse_install_dir/update_synapse_for_appservice.sh" ]; then
     ynh_print_warn "Can't find script at: $synapse_install_dir/update_synapse_for_appservice.sh"
@@ -224,7 +208,6 @@ if [ ! -f "$synapse_install_dir/update_synapse_for_appservice.sh" ]; then
     
     if [ -f "/var/www/synapse/update_synapse_for_appservice.sh" ]; then
         synapse_install_dir="/var/www/synapse"
-        ynh_print_info "Found Synapse at /var/www/synapse"
     else
         ynh_die "Can't find Synapse update script. Searched in: $synapse_install_dir and /var/www/synapse"
     fi
