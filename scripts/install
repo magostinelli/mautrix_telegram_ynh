@@ -8,6 +8,22 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
+# LOAD SETTINGS
+#=================================================
+
+app=$YNH_APP_INSTANCE_NAME
+install_dir=$YNH_APP_DEST_DIR
+
+synapse_instance=${YNH_APP_ARG_SYNAPSE_INSTANCE:-}
+botname=${YNH_APP_ARG_BOTNAME:-}
+botusers=${YNH_APP_ARG_BOTUSERS:-}
+botadmin=${YNH_APP_ARG_BOTADMIN:-}
+encryption=${YNH_APP_ARG_ENCRYPTION:-0}
+apiid=${YNH_APP_ARG_APIID:-}
+apihash=${YNH_APP_ARG_APIHASH:-}
+bottoken=${YNH_APP_ARG_BOTTOKEN:-}
+
+#=================================================
 # INITIALIZE AND STORE SETTINGS
 #=================================================
 
