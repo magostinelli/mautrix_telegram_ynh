@@ -71,24 +71,15 @@ fi
 update_script="update_synapse_for_appservice.sh"
 script_path=""
 
-if [ -n "$synapse_install_dir" ]; then
-    script_path="$synapse_install_dir/$update_script"
-fi
-
 # Check if the script exists in the retrieved directory
-if [ -z "$script_path" ] || [ ! -f "$script_path" ]; then
-    if [ -n "$script_path" ]; then
-        ynh_print_warn "Script not found at: $script_path"
-    fi
-    
+if [ -n "$synapse_install_dir" ] && [ -f "$synapse_install_dir/$update_script" ]; then
+    script_path="$synapse_install_dir/$update_script"
+elif [ -f "/var/www/synapse/$update_script" ]; then
     # Try the alternative path
-    if [ -f "/var/www/synapse/$update_script" ]; then
-        script_path="/var/www/synapse/$update_script"
-        ynh_print_info "Found Synapse script at $script_path"
-    else
-        script_path=""
-        ynh_print_warn "Could not find $update_script. Synapse configuration update skipped."
-    fi
+    script_path="/var/www/synapse/$update_script"
+    ynh_print_info "Found Synapse script at $script_path"
+else
+    ynh_print_warn "Could not find $update_script. Synapse configuration update skipped."
 fi
 
 # Run the script if found
@@ -97,6 +88,7 @@ if [ -n "$script_path" ]; then
 fi
 
 # Remove the log files
+ynh_secure_remove --file="/var/log/$app"
 
 #=================================================
 # END OF SCRIPT
